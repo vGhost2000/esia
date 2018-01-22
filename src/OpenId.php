@@ -182,6 +182,38 @@ class OpenId
 
 
     /**
+     * При использовании ГОСТовских ключей для подписи сгенеренных через криптопро процедура
+     * openssl_pkcs7_sign валится с ошибкой. Это альтернативный вариант формирования подписи
+     *
+     * @param string $message
+     * @return string
+     * @throws SignFailException
+     */
+    private function _signMessageV2($message): string
+    {
+        $messageFile = $this->tmpPath . DIRECTORY_SEPARATOR . $this->getRandomString();
+        $signFile = $this->tmpPath . DIRECTORY_SEPARATOR . $this->getRandomString();
+        file_put_contents($messageFile, $message);
+
+        $cmd = 'openssl smime -sign -in ' . $messageFile . ' -out ' . $signFile . ' -binary -signer '
+            . $this->certPath . ' -inkey ' . $this->privateKeyPath . ' -outform PEM'
+        ;
+
+        system($cmd, $return);
+        if ($return || !is_file($signFile) || empty($signed = file_get_contents($signFile))) {
+            throw new SignFailException(SignFailException::CODE_SIGN_FAIL);
+        }
+
+        $signed = explode("\n", $signed);
+        array_shift($signed);
+        array_pop($signed);
+        array_pop($signed);
+
+        return str_replace("\n", "", $this->urlSafe(implode($signed)));
+    }
+
+
+    /**
      * Algorithm for singing message which
      * will be send in client_secret param
      *
@@ -192,6 +224,11 @@ class OpenId
     public function signPKCS7($message)
     {
         $this->checkFilesExists();
+
+        // @TODO скорее всего такая проверка нуждается в доработке, вероятно это условие лучше даже вынести в конфиг
+        if (strpos(file_get_contents($this->privateKeyPath), 'X509v3 Key Usage')) {
+            return $this->_signMessageV2($message);
+        }
 
         $certContent = file_get_contents($this->certPath);
         $keyContent = file_get_contents($this->privateKeyPath);

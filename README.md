@@ -10,7 +10,7 @@
 
 При помощи [composer](https://getcomposer.org/download/):
 ```
-composer require --prefer-dist vGhost2000/esia
+composer require --prefer-dist v-ghost2000/esia
 ```
 Или добавьте в composer.json
 

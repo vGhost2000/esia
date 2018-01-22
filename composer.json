@@ -1,5 +1,5 @@
 {
-    "name": "vGhost2000/esia",
+    "name": "v-ghost2000/esia",
     "description": "OpenID ESIA authenticating",
     "keywords": ["esia", "openid", "egov"],
     "autoload": {

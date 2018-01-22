@@ -1,7 +1,6 @@
 
 # Единая система идентификации и аутентификации (ЕСИА) OpenId 
 
-[![Build Status](https://travis-ci.org/fr05t1k/esia.svg?branch=master)](https://travis-ci.org/fr05t1k/esia)
 
 # Описание
 Компонент для авторизации на портале "Госуслуги"
@@ -15,7 +14,7 @@ composer require --prefer-dist v-ghost2000/esia
 Или добавьте в composer.json
 
 ```
-"fr05t1k/esia" : "dev-master"
+"v-ghost/esia" : "dev-master"
 ```
 
 # Как использовать 

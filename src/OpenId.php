@@ -1,6 +1,7 @@
 <?php
 namespace esia;
 
+use app\components\encryption\Exception;
 use esia\exceptions\RequestFailException;
 use esia\exceptions\SignFailException;
 
@@ -34,6 +35,22 @@ class OpenId
     protected $timestamp = null;
     protected $accessType = 'offline';
     protected $tmpPath;
+
+
+    /**
+     * stdClass Object
+     * (
+     *      [access_token] => eyJ2ZXIiOjEsInR5cCI6IkpXVCIsInNidCI6ImFjY2VzcyIsImFsZyI6IlJTMjU2In0.eyJuYmYiOj....
+     *      [refresh_token] => c8918503-2c98-427a-9bae-031a18595bb7
+     *      [id_token] => eyJ2ZXIiOjAsInR5cCI6IkpXVCIsInNidCI6ImlkIiwiYWxnIjoiUlMyNTYifQ.eyJhdWQiOiI4MzI5MDI....
+     *      [state] => dbea76e9-8f29-49f5-b83c-8b62931156b1
+     *      [token_type] => Bearer
+     *      [expires_in] => 3600
+     * )
+     *
+     * @var array
+     */
+    private $_tokenData = [];
 
     private $url = null;
     public $token = null;
@@ -122,9 +139,9 @@ class OpenId
      *
      * @param $code
      * @return false|string
-     * @throws SignFailException
+     * @throws SignFailException|Exception
      */
-    public function getToken($code)
+    public function getToken($code = null)
     {
         $this->timestamp = $this->getTimeStamp();
         $this->state = $this->getState();
@@ -164,7 +181,7 @@ class OpenId
         curl_setopt_array($curl, $options);
 
         $result = curl_exec($curl);
-        $result = json_decode($result);
+        $this->_tokenData = $result = json_decode($result);
 
         $this->writeLog(print_r($result, true));
 
@@ -178,6 +195,37 @@ class OpenId
         $this->writeLog(var_export($payload, true));
 
         return $this->token;
+    }
+
+
+    /**
+     * Метод возвращает другие элементы из данных ЕСИА апи получения токена
+     * stdClass Object
+     * (
+     *      [access_token] => eyJ2ZXIiOjEsInR5cCI6IkpXVCIsInNidCI6ImFjY2VzcyIsImFsZyI6IlJTMjU2In0.eyJuYmYiOj....
+     *      [refresh_token] => c8918503-2c98-427a-9bae-031a18595bb7
+     *      [id_token] => eyJ2ZXIiOjAsInR5cCI6IkpXVCIsInNidCI6ImlkIiwiYWxnIjoiUlMyNTYifQ.eyJhdWQiOiI4MzI5MDI....
+     *      [state] => dbea76e9-8f29-49f5-b83c-8b62931156b1
+     *      [token_type] => Bearer
+     *      [expires_in] => 3600
+     * )
+     *
+     * @param string|null $key
+     * @return array
+     * @throws Exception
+     */
+    public function getTokenData(string $key = null)
+    {
+        if (empty($this->_tokenData)) {
+            throw new Exception('Error: empty tokenData. Call "getToken($code)" first');
+        }
+        if ($key) {
+            if (!isset($this->_tokenData->$key)) {
+                throw new Exception("Error: object key $key not exists in tokenData");
+            }
+            return $this->_tokenData->$key;
+        }
+        return $this->_tokenData;
     }
 
 
@@ -201,7 +249,13 @@ class OpenId
 
         system($cmd, $return);
         if ($return || !is_file($signFile) || empty($signed = file_get_contents($signFile))) {
+            if (is_file($signFile)) {
+                unlink($signFile);
+            }
             throw new SignFailException(SignFailException::CODE_SIGN_FAIL);
+        }
+        if (is_file($signFile)) {
+            unlink($signFile);
         }
 
         $signed = explode("\n", $signed);

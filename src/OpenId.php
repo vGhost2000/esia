@@ -138,13 +138,18 @@ class OpenId
      * Method collect a token with given code
      *
      * @param $code
+     * @param $refresh_token
      * @return false|string
      * @throws SignFailException|Exception
      */
-    public function getToken($code = null)
+    public function getToken($code = null, $refresh_token = null)
     {
-        $this->timestamp = $this->getTimeStamp();
-        $this->state = $this->getState();
+        $this->timestamp    = $this->getTimeStamp();
+        $this->state        = $this->getState();
+        $grant_type         = $refresh_token
+            ? 'refresh_token'
+            : 'authorization_code'
+        ;
 
         $clientSecret = $this->signPKCS7($this->scope . $this->timestamp . $this->clientId . $this->state);
 
@@ -153,16 +158,16 @@ class OpenId
         }
 
         $request = [
-            'client_id' => $this->clientId,
-            'code' => $code,
-            'grant_type' => 'authorization_code',
+            'client_id'     => $this->clientId,
+            'code'          => $code,
+            'grant_type'    => $grant_type,
             'client_secret' => $clientSecret,
-            'state' => $this->state,
-            'redirect_uri' => $this->redirectUrl,
-            'scope' => $this->scope,
-            'timestamp' => $this->timestamp,
-            'token_type' => 'Bearer',
-            'refresh_token' => $this->state,
+            'state'         => $this->state,
+            'redirect_uri'  => $this->redirectUrl,
+            'scope'         => $this->scope,
+            'timestamp'     => $this->timestamp,
+            'token_type'    => 'Bearer',
+            'refresh_token' => $refresh_token,
         ];
 
         $curl = curl_init();
@@ -519,7 +524,7 @@ class OpenId
             $log($message);
         }
     }
-    
+
     /**
      * Generate random unique string
      *

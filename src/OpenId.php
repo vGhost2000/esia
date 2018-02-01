@@ -72,6 +72,8 @@ class OpenId
      * ```
      *
      * @return string|false
+     *
+     * @throws SignFailException
      */
     public function getUrl()
     {
@@ -219,7 +221,7 @@ class OpenId
      * @return array
      * @throws Exception
      */
-    public function getTokenData(string $key = null)
+    public function getTokenData($key = null)
     {
         if (empty($this->_tokenData)) {
             throw new Exception('Error: empty tokenData. Call "getToken($code)" first');
@@ -242,7 +244,7 @@ class OpenId
      * @return string
      * @throws SignFailException
      */
-    private function _signMessageV2($message): string
+    private function _signMessageV2($message)
     {
         $messageFile = $this->tmpPath . DIRECTORY_SEPARATOR . $this->getRandomString();
         $signFile = $this->tmpPath . DIRECTORY_SEPARATOR . $this->getRandomString();
@@ -254,14 +256,12 @@ class OpenId
 
         system($cmd, $return);
         if ($return || !is_file($signFile) || empty($signed = file_get_contents($signFile))) {
-            if (is_file($signFile)) {
-                unlink($signFile);
-            }
+            self::_removeIfExist($signFile);
+            self::_removeIfExist($messageFile);
             throw new SignFailException(SignFailException::CODE_SIGN_FAIL);
         }
-        if (is_file($signFile)) {
-            unlink($signFile);
-        }
+        self::_removeIfExist($signFile);
+        self::_removeIfExist($messageFile);
 
         $signed = explode("\n", $signed);
         array_shift($signed);
@@ -270,6 +270,20 @@ class OpenId
 
         return str_replace("\n", "", $this->urlSafe(implode($signed)));
     }
+
+
+    /**
+     * Метод удаляет временные файлы
+     *
+     * @param $file
+     */
+    private static function _removeIfExist($file)
+    {
+        if (is_file($file)) {
+            unlink($file);
+        }
+    }
+
 
 
     /**
@@ -326,6 +340,8 @@ class OpenId
         } else {
             $this->writeLog('Sign fail');
             $this->writeLog('SSH error: ' . openssl_error_string());
+            self::_removeIfExist($signFile);
+            self::_removeIfExist($messageFile);
             throw new SignFailException(SignFailException::CODE_SIGN_FAIL);
         }
 
@@ -337,8 +353,8 @@ class OpenId
         # get third section which contains sign and join into one line
         $sign = str_replace("\n", "", $this->urlSafe($signed[3]));
 
-        unlink($signFile);
-        unlink($messageFile);
+        self::_removeIfExist($signFile);
+        self::_removeIfExist($messageFile);
 
         return $sign;
 
@@ -368,7 +384,7 @@ class OpenId
      * calling this method
      *
      * @throws \Exception
-     * @return null|\stdClass
+     * @return null|array
      */
     public function getContactInfo()
     {
@@ -380,7 +396,7 @@ class OpenId
             return $this->collectArrayElements($result->elements);
         }
 
-        return $result;
+        return null;
     }
 
 
@@ -391,11 +407,103 @@ class OpenId
      * calling this method
      *
      * @throws \Exception
-     * @return null|\stdClass
+     * @return null|array
      */
     public function getAddressInfo()
     {
         $url = $this->personUrl . '/' . $this->oid . '/addrs';
+        $request = $this->buildRequest();
+        $result = $request->call($url);
+
+        if ($result && $result->size > 0) {
+            return $this->collectArrayElements($result->elements);
+        }
+
+        return null;
+    }
+
+
+    /**
+     * документы пользователя;
+     *
+     * You must collect token person before
+     * calling this method
+     *
+     * @throws \Exception
+     * @return null|array
+     */
+    public function getDocumentsInfo()
+    {
+        $url = $this->personUrl . '/' . $this->oid . '/docs';
+        $request = $this->buildRequest();
+        $result = $request->call($url);
+
+        if ($result && $result->size > 0) {
+            return $this->collectArrayElements($result->elements);
+        }
+
+        return null;
+    }
+
+
+    /**
+     * организации, сотрудником которых является данный пользователь;
+     *
+     * You must collect token person before
+     * calling this method
+     *
+     * @throws \Exception
+     * @return null|array
+     */
+    public function getOrganizationsInfo()
+    {
+        $url = $this->personUrl . '/' . $this->oid . '/orgs';
+        $request = $this->buildRequest();
+        $result = $request->call($url);
+
+        if ($result && $result->size > 0) {
+            return $this->collectArrayElements($result->elements);
+        }
+
+        return null;
+    }
+
+
+    /**
+     * дети пользователя;
+     *
+     * You must collect token person before
+     * calling this method
+     *
+     * @throws \Exception
+     * @return null|array
+     */
+    public function getKidsInfo()
+    {
+        $url = $this->personUrl . '/' . $this->oid . '/kids';
+        $request = $this->buildRequest();
+        $result = $request->call($url);
+
+        if ($result && $result->size > 0) {
+            return $this->collectArrayElements($result->elements);
+        }
+
+        return null;
+    }
+
+
+    /**
+     * транспортные средства пользователя.
+     *
+     * You must collect token person before
+     * calling this method
+     *
+     * @throws \Exception
+     * @return null|array
+     */
+    public function getVehiclesInfo()
+    {
+        $url = $this->personUrl . '/' . $this->oid . '/vhls';
         $request = $this->buildRequest();
         $result = $request->call($url);
 
@@ -419,14 +527,12 @@ class OpenId
     {
         $result = [];
         foreach ($elements as $element) {
-
             $request = $this->buildRequest();
             $source = $request->call($element, true);
 
             if ($source) {
                 array_push($result, $source);
             }
-
         }
 
         return $result;

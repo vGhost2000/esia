@@ -35,6 +35,7 @@ class OpenId
     protected $timestamp = null;
     protected $accessType = 'offline';
     protected $tmpPath;
+    protected $opensslPath = 'openssl';
 
 
     /**
@@ -257,7 +258,7 @@ class OpenId
         $signFile = $this->tmpPath . DIRECTORY_SEPARATOR . $this->getRandomString();
         file_put_contents($messageFile, $message);
 
-        $cmd = 'openssl smime -sign -in ' . $messageFile . ' -out ' . $signFile . ' -binary -signer '
+        $cmd = $this->opensslPath .' smime -sign -in ' . $messageFile . ' -out ' . $signFile . ' -binary -signer '
             . $this->certPath . ' -inkey ' . $this->privateKeyPath . ' -outform PEM'
         ;
 

@@ -35,6 +35,8 @@ class OpenId
     protected $timestamp = null;
     protected $accessType = 'offline';
     protected $tmpPath;
+    protected $opensslPath = 'openssl';
+    protected $verifySSL = true;
 
 
     /**
@@ -183,11 +185,19 @@ class OpenId
             CURLOPT_POSTFIELDS => http_build_query($request),
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
         ];
 
         curl_setopt_array($curl, $options);
 
         $result = curl_exec($curl);
+        if ($result === false) {
+            $this->writeLog('curl error: ' . curl_error($curl));
+        }
+        curl_close($curl);
+        if ($result === false) {
+            return false;
+        }
         $this->_tokenData = $result = json_decode($result);
 
         $this->writeLog(print_r($result, true));
@@ -250,7 +260,7 @@ class OpenId
         $signFile = $this->tmpPath . DIRECTORY_SEPARATOR . $this->getRandomString();
         file_put_contents($messageFile, $message);
 
-        $cmd = 'openssl smime -sign -in ' . $messageFile . ' -out ' . $signFile . ' -binary -signer '
+        $cmd = $this->opensslPath .' smime -sign -in ' . $messageFile . ' -out ' . $signFile . ' -binary -signer '
             . $this->certPath . ' -inkey ' . $this->privateKeyPath . ' -outform PEM'
         ;
 
@@ -548,7 +558,7 @@ class OpenId
             throw new RequestFailException(RequestFailException::CODE_TOKEN_IS_EMPTY);
         }
 
-        return new Request($this->portalUrl, $this->token);
+        return new Request($this->portalUrl, $this->token, $this->verifySSL);
     }
 
     /**

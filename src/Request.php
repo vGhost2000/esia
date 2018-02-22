@@ -27,10 +27,11 @@ class Request
      * @param string $url
      * @param string $token
      */
-    function __construct($url, $token)
+    function __construct($url, $token, $verifySSL)
     {
         $this->url = $url;
         $this->token = $token;
+        $this->verifySSL = $verifySSL;
     }
 
     /**
@@ -82,6 +83,7 @@ class Request
 
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $this->token]);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $this->verifySSL);
 
             return $ch;
         }

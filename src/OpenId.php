@@ -36,6 +36,7 @@ class OpenId
     protected $accessType = 'offline';
     protected $tmpPath;
     protected $opensslPath = 'openssl';
+    protected $verifySSL = true;
 
 
     /**
@@ -184,6 +185,7 @@ class OpenId
             CURLOPT_POSTFIELDS => http_build_query($request),
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
         ];
 
         curl_setopt_array($curl, $options);
@@ -556,7 +558,7 @@ class OpenId
             throw new RequestFailException(RequestFailException::CODE_TOKEN_IS_EMPTY);
         }
 
-        return new Request($this->portalUrl, $this->token);
+        return new Request($this->portalUrl, $this->token, $this->verifySSL);
     }
 
     /**

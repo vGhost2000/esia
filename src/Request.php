@@ -64,7 +64,10 @@ class Request
         $url = $withScheme ? $method : $this->url . $method;
         curl_setopt($ch, CURLOPT_URL, $url);
 
-        return json_decode(curl_exec($ch));
+        $res = json_decode(curl_exec($ch));
+        curl_close($ch);
+
+        return $res;
     }
 
     /**

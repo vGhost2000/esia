@@ -188,6 +188,13 @@ class OpenId
         curl_setopt_array($curl, $options);
 
         $result = curl_exec($curl);
+        if ($result === false) {
+            $this->writeLog('curl error: ' . curl_error($curl));
+        }
+        curl_close($curl);
+        if ($result === false) {
+            return false;
+        }
         $this->_tokenData = $result = json_decode($result);
 
         $this->writeLog(print_r($result, true));

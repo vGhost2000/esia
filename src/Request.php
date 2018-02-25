@@ -26,6 +26,7 @@ class Request
     /**
      * @param string $url
      * @param string $token
+     * @param boolean $verifySSL
      */
     function __construct($url, $token, $verifySSL)
     {

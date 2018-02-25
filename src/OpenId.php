@@ -22,6 +22,7 @@ class OpenId
     public $tokenUrl = 'aas/oauth2/te';
     public $codeUrl = 'aas/oauth2/ac';
     public $personUrl = 'rs/prns';
+    public $logoutUrl = 'idp/ext/Logout';
     public $privateKeyPath;
     public $privateKeyPassword;
     public $certPath;
@@ -106,6 +107,28 @@ class OpenId
         $this->url = sprintf($url, $request);
 
         return $this->url;
+    }
+
+    /**
+     * Return an url for logout
+     * 
+     * @param $redirect_url
+     * @return string
+     */
+    public function getLogoutUrl($redirect_url = null) {
+        $url = $this->portalUrl . $this->logoutUrl . '?%s';
+
+        $params = [
+            'client_id' => $this->clientId
+        ];
+
+        if ($redirect_url) {
+            $params['redirect_url'] = $redirect_url;
+        }
+
+        $request = http_build_query($params);        
+
+        return sprintf($url, $request);
     }
 
     /**
